@@ -2,12 +2,17 @@
 High School Management System API
 
 A super simple FastAPI application that allows students to view and sign up
-for extracurricular activities at Mergington High School.
+for extracurricular activities at Mergington High School. Signing up and
+unregistering students requires a teacher to be logged in.
 """
 
-from fastapi import FastAPI, HTTPException
+import hashlib
+import json
+import secrets
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 import os
 from pathlib import Path
 
@@ -18,6 +23,78 @@ app = FastAPI(title="Mergington High School API",
 current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
+
+# Teacher credentials (username -> scrypt password hash), loaded from a JSON
+# file since there is no database yet. Teachers are assigned accounts ahead
+# of time; there is no self-service account creation.
+with open(current_dir / "teachers.json", encoding="utf-8") as teachers_file:
+    _teachers = {
+        teacher["username"]: teacher["password_hash"]
+        for teacher in json.load(teachers_file)["teachers"]
+    }
+
+# In-memory session store: session token -> teacher username. Sessions reset
+# whenever the server restarts, same as the activities data.
+_sessions: dict[str, str] = {}
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+def _verify_password(password: str, password_hash: str) -> bool:
+    try:
+        scheme, salt_hex, digest_hex = password_hash.split("$")
+        if scheme != "scrypt":
+            return False
+        salt = bytes.fromhex(salt_hex)
+        expected_digest = bytes.fromhex(digest_hex)
+        if len(salt) != 16 or len(expected_digest) != 32:
+            return False
+        actual_digest = hashlib.scrypt(
+            password.encode("utf-8"), salt=salt, n=2**14, r=8, p=1, dklen=32
+        )
+    except ValueError:
+        return False
+    return secrets.compare_digest(actual_digest, expected_digest)
+
+
+def get_current_teacher(authorization: str | None = Header(default=None)) -> str:
+    """Resolve the logged-in teacher from the Authorization header.
+
+    Raises a 401 if there is no valid session, so this can be used as a
+    dependency to protect teacher-only endpoints.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Teacher login required")
+
+    token = authorization.removeprefix("Bearer ")
+    username = _sessions.get(token)
+    if username is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+
+    return username
+
+
+@app.post("/auth/login")
+def login(credentials: LoginRequest):
+    """Log a teacher in and return a session token."""
+    password_hash = _teachers.get(credentials.username)
+    if password_hash is None or not _verify_password(credentials.password, password_hash):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    token = secrets.token_hex(16)
+    _sessions[token] = credentials.username
+    return {"token": token, "username": credentials.username}
+
+
+@app.post("/auth/logout")
+def logout(authorization: str | None = Header(default=None)):
+    """Log the current teacher out by invalidating their session token."""
+    if authorization and authorization.startswith("Bearer "):
+        _sessions.pop(authorization.removeprefix("Bearer "), None)
+    return {"message": "Logged out"}
 
 # In-memory activity database
 activities = {
@@ -89,8 +166,8 @@ def get_activities():
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
+def signup_for_activity(activity_name: str, email: str, teacher: str = Depends(get_current_teacher)):
+    """Sign up a student for an activity. Requires a logged-in teacher."""
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
@@ -111,8 +188,8 @@ def signup_for_activity(activity_name: str, email: str):
 
 
 @app.delete("/activities/{activity_name}/unregister")
-def unregister_from_activity(activity_name: str, email: str):
-    """Unregister a student from an activity"""
+def unregister_from_activity(activity_name: str, email: str, teacher: str = Depends(get_current_teacher)):
+    """Unregister a student from an activity. Requires a logged-in teacher."""
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")

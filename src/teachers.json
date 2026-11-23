@@ -1,0 +1,12 @@
+{
+  "teachers": [
+    {
+      "username": "ms.rodriguez",
+      "password_hash": "9ee2313fef6f783d16cfd13a6547d149b299823a459361f7b3ec0f597c2c0854"
+    },
+    {
+      "username": "principal.lee",
+      "password_hash": "9de8a4f5cf61b2c8db77cb25a5ef7c09a840cefe86238010a12226232e0bd64f"
+    }
+  ]
+}

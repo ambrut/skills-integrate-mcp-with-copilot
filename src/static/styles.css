@@ -24,7 +24,60 @@ header {
   border-radius: 5px;
 }
 
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.header-titles {
+  flex-grow: 1;
+  text-align: center;
+}
+
 header h1 {
+  margin-bottom: 10px;
+}
+
+#auth-section {
+  position: relative;
+  text-align: left;
+}
+
+#user-icon-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: white;
+  font-size: 20px;
+  padding: 6px 10px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#user-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+#login-panel {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 10px;
+  background-color: white;
+  color: #333;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  width: 240px;
+  z-index: 10;
+}
+
+#login-panel .form-group {
+  margin-bottom: 10px;
+}
+
+#logged-in-panel p {
   margin-bottom: 10px;
 }
 

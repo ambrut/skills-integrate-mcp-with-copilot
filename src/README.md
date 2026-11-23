@@ -28,7 +28,7 @@ A super simple FastAPI application that allows students to view extracurricular 
 
 ## Teacher Login
 
-Teacher accounts are pre-assigned and stored (as salted-free sha256 password hashes) in [`teachers.json`](./teachers.json); there is no self-service account creation. For local testing, two demo accounts are included:
+Teacher accounts are pre-assigned and stored (as salted scrypt password hashes) in [`teachers.json`](./teachers.json); there is no self-service account creation. For local testing, two demo accounts are included:
 
 | Username        | Password            |
 | --------------- | -------------------- |
@@ -65,4 +65,3 @@ The application uses a simple data model with meaningful identifiers:
    - Grade level
 
 All data is stored in memory, which means data (activities, sign-ups, and teacher sessions) will be reset when the server restarts.
-

@@ -24,7 +24,7 @@ current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
 
-# Teacher credentials (username -> sha256 password hash), loaded from a JSON
+# Teacher credentials (username -> scrypt password hash), loaded from a JSON
 # file since there is no database yet. Teachers are assigned accounts ahead
 # of time; there is no self-service account creation.
 with open(current_dir / "teachers.json", encoding="utf-8") as teachers_file:
@@ -43,8 +43,21 @@ class LoginRequest(BaseModel):
     password: str
 
 
-def _hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+def _verify_password(password: str, password_hash: str) -> bool:
+    try:
+        scheme, salt_hex, digest_hex = password_hash.split("$")
+        if scheme != "scrypt":
+            return False
+        salt = bytes.fromhex(salt_hex)
+        expected_digest = bytes.fromhex(digest_hex)
+        if len(salt) != 16 or len(expected_digest) != 32:
+            return False
+        actual_digest = hashlib.scrypt(
+            password.encode("utf-8"), salt=salt, n=2**14, r=8, p=1, dklen=32
+        )
+    except ValueError:
+        return False
+    return secrets.compare_digest(actual_digest, expected_digest)
 
 
 def get_current_teacher(authorization: str | None = Header(default=None)) -> str:
@@ -68,7 +81,7 @@ def get_current_teacher(authorization: str | None = Header(default=None)) -> str
 def login(credentials: LoginRequest):
     """Log a teacher in and return a session token."""
     password_hash = _teachers.get(credentials.username)
-    if password_hash is None or password_hash != _hash_password(credentials.password):
+    if password_hash is None or not _verify_password(credentials.password, password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     token = secrets.token_hex(16)

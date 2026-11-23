@@ -2,11 +2,11 @@
   "teachers": [
     {
       "username": "ms.rodriguez",
-      "password_hash": "9ee2313fef6f783d16cfd13a6547d149b299823a459361f7b3ec0f597c2c0854"
+      "password_hash": "scrypt$76b24d2bd9db86b2155e679223f2a458$5e365e5cda7bbc425b3b7127ea8b0c58f702dbf8d956b26ef54b5d038887406d"
     },
     {
       "username": "principal.lee",
-      "password_hash": "9de8a4f5cf61b2c8db77cb25a5ef7c09a840cefe86238010a12226232e0bd64f"
+      "password_hash": "scrypt$3e38f7dda9ac14cd65e2aed77690cf7c$ce7627cddfb80b00ee1514ecef212406ca2221213d7f8702a3f7741304b86f20"
     }
   ]
 }

@@ -122,6 +122,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Function to fetch activities from API
   async function fetchActivities() {
+    activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+
     try {
       const response = await fetch("/activities");
       const activities = await response.json();

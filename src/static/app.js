@@ -36,6 +36,20 @@ document.addEventListener("DOMContentLoaded", () => {
     sessionStorage.removeItem("authUsername");
   }
 
+  function handleUnauthorized(response) {
+    if (response.status !== 401) {
+      return false;
+    }
+
+    clearSession();
+    updateAuthUI();
+    fetchActivities();
+    loginMessage.textContent = "Your session has expired. Please log in again.";
+    loginMessage.className = "error";
+    loginMessage.classList.remove("hidden");
+    return true;
+  }
+
   // Reflect the current login state in the UI: only teachers can see and
   // use the signup form or the per-participant unregister buttons.
   function updateAuthUI() {
@@ -192,6 +206,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       );
 
+      if (handleUnauthorized(response)) {
+        return;
+      }
+
       const result = await response.json();
 
       if (response.ok) {
@@ -236,6 +254,10 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: { Authorization: `Bearer ${authToken}` },
         }
       );
+
+      if (handleUnauthorized(response)) {
+        return;
+      }
 
       const result = await response.json();
 
